@@ -1,0 +1,7 @@
+#inclide "Obstacle.h"
+
+
+Obstacle::Obstacle(){
+}
+Obstacle::~Obstacle(){
+}

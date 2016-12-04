@@ -1,0 +1,31 @@
+
+#include "../pch.h"
+#include "../Scene/Scene.h"
+#include <functional>
+#include <csound/csound.hpp>
+#include <csound/csPerfThread.hpp>
+
+void sonify(Csound*, CsoundPerformanceThread*, Scene* , float , unsigned int* );
+
+class CSoundManager{
+	public:
+		CSoundManager(Scene* newScene, char* csdfile);
+		~CSoundManager();
+		void Start();
+		void Stop();
+	private:
+		void callback(function<void(Csound*, CsoundPerformanceThread*, Scene*, float, unsigned int*)>, unsigned int);
+		
+	
+	private:
+		Csound *cs;
+		unsigned int instr;
+		unsigned int* pInstr;
+		unsigned int scanTimer;
+		unsigned int* pScanTimer;
+		CsoundPerformanceThread* perfThread;
+		Scene* scene;
+
+
+};
+

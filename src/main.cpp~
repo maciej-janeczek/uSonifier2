@@ -1,0 +1,496 @@
+#include "pch.h"
+#include "Cuda/cudamj.hpp"
+#include "PID/cameractrl.h"
+#include "CSoundManager/CSoundManager.h"
+#include "Camera/duo.h"
+#include <chrono>
+#include <cuda_runtime.h>
+#include <iostream>
+//#include <Camera/pclMJ.h>
+#include <pcl/io/ply_io.h>
+#include <pcl/point_types.h>
+#include <pcl/filters/fast_bilateral_omp.h>
+
+
+using namespace pcl;
+using namespace pcl::io;
+using namespace pcl::console;
+
+#define FOCAL_LENGTH 333.333 // 2mm/0.006mm
+#define BASELINE 0.03 //[mm]
+#define FL_BL 10.0 //FOCAL_LENGTH*BASELINE*1000
+
+#define FPS		30
+
+#include <zed/Camera.hpp>
+
+
+using namespace cv::gpu;
+
+void rectifParams(Mat &lU, Mat &rU, Mat &lR, Mat &rR, Mat &R, Mat &T);
+void remapUdisparity(Mat &udisp, Mat &udepth);
+
+void matToPointXYZ(cv::Mat &color, cv::Mat &disp,
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
+
+int main(void){
+	int counter = 0;
+	int counter_sec = 0;
+	cudaDeviceProp devProp;
+    cudaGetDeviceProperties(&devProp,0);
+    
+	// Open DUO camera and start capturing
+	/*printf("DUOLib Version:       v%s\n", GetLibVersion());
+	if(!OpenDUOCamera(WIDTH, HEIGHT, FPS))
+	{
+		printf("Could not open DUO camera\n");
+		return 0;
+	}
+	printf("\nHit <ESC> to exit.\n");*/
+	
+	//////////////////////////////////////////////////	ZED
+	sl::zed::SENSING_MODE dm_type = sl::zed::STANDARD;
+    bool loadParams = false;
+    std::string ParamsName;
+    sl::zed::Camera* zed;
+	zed = new sl::zed::Camera(sl::zed::HD720);
+	    sl::zed::InitParams params;
+
+    if (loadParams)// a file is given in argument, we load it
+        params.load(ParamsName);
+
+     //activate verbosity in console window. 
+    params.verbose=true;
+ 
+    sl::zed::ERRCODE err = zed->init(params);
+    std::cout << "Error code : " << sl::zed::errcode2str(err) << std::endl;
+    if (err != sl::zed::SUCCESS) {// Quit if an error occurred
+        delete zed;
+        return 1;
+    }
+
+    // Save the initialization parameters //use the file created in any of your zed based application
+    params.save("MyParam");
+	sl::zed::Camera::sticktoCPUCore(2);
+	sl::zed::ZED_SELF_CALIBRATION_STATUS old_self_calibration_status = sl::zed::SELF_CALIBRATION_NOT_CALLED;
+	///////////////////////////////////////////////////
+	
+	cv::Mat left(  HEIGHT, WIDTH, CV_8UC1 );
+	cv::Mat right( HEIGHT, WIDTH, CV_8UC1 );
+	cv::Mat disp( HEIGHT, WIDTH, CV_8UC1 );
+	cv::Mat depth( HEIGHT, WIDTH, CV_8UC1 );
+	cv::Mat dispOCV( HEIGHT, WIDTH, CV_8UC1 );
+	
+	cv::Mat display, d1, d2;
+	setImageForCuda(left, sizeof(unsigned char)*WIDTH*HEIGHT);	
+	setImageForCuda(right, sizeof(unsigned char)*WIDTH*HEIGHT);	
+	setImageForCuda(disp, sizeof(unsigned char)*WIDTH*HEIGHT);	
+	setImageForCuda(depth, sizeof(unsigned char)*WIDTH*HEIGHT);
+	
+	unsigned char* g_imgL;
+	unsigned char* g_imgR;
+	unsigned char* g_disp;
+	
+	unsigned int* g_params;
+	
+	unsigned char** g_tempsC = initDisp3C(sizeof(unsigned char)*WIDTH*HEIGHT);
+	unsigned short** g_tempsUS = initDisp3US(sizeof(unsigned int)*WIDTH*HEIGHT);
+	
+	cudaInit(&g_imgL, &g_imgR, &g_disp, HEIGHT, WIDTH);
+	
+	/*gpu::GpuMat gL, gR, dst;
+	gpu::StereoBM_GPU sbm(2, 64, 11);
+	gpu::DisparityBilateralFilter DBFilter(64,2, 1);
+	Mat ocvDisp;*/
+	
+	//CameraCtrl cameraCtrl( &left, SetExposure, SetGain, SetLed, false );
+	SetGain(100);
+	SetExposure(100);
+	SetLed(0);
+	
+	namedWindow( "Display", WINDOW_AUTOSIZE );
+	
+	int shift = 0;
+	auto start = std::chrono::system_clock::now();
+	
+	Mat image1, image2;
+	image1 = imread("../data/zedimage640x480_left.png");
+	image2 = imread("../data/zedimage640x480_right.png");
+	//image1 = imread("../data/im0.png");
+	//image2 = imread("../data/im1.png");
+	
+	cvtColor(image1(Rect(0,0,640,480)), image1, CV_BGR2GRAY);
+	cvtColor(image2(Rect(0,0,640,480)), image2, CV_BGR2GRAY);
+
+	Mat lU = Mat::zeros(3, 3, CV_64FC1);
+    Mat rU = Mat::zeros(3, 3, CV_64FC1);
+    Mat lR = Mat::zeros(1, 4, CV_64FC1);
+    Mat rR = Mat::zeros(1, 4, CV_64FC1);
+    Mat R = Mat::zeros(3, 3, CV_64FC1);
+    Mat T = Mat::zeros(3, 1, CV_64FC1);
+	
+	rectifParams(lU, rU, lR, rR, R, T);
+	
+    Mat Q, R1, R2, P1, P2;
+	
+	stereoRectify(lU, lR, rU, rR, Size(640, 480), R, T, R1, R2, P1, P2, Q);
+	
+	Mat mapL1, mapL2, mapR1, mapR2;
+	fisheye::initUndistortRectifyMap(lU, lR, R1, P1, Size(640, 480), CV_16SC2, mapL1, mapL2);
+	fisheye::initUndistortRectifyMap(rU, rR, R2, P2, Size(640, 480), CV_16SC2, mapR1, mapR2);
+	Mat lTmp, rTmp;
+	
+    Mat disp32, dispColor, depthColor;
+	Mat img;
+	while((cvWaitKey(5) & 0xff) != 27)
+	{
+		////////////////////////////////////////	ZED
+		
+		bool res = zed->grab(dm_type, 0, 0, 0);
+		
+		if (!res) {
+			if (old_self_calibration_status != zed->getSelfCalibrationStatus()) {
+                std::cout << "Self Calibration Status : " << sl::zed::statuscode2str(zed->getSelfCalibrationStatus()) << std::endl;
+                old_self_calibration_status = zed->getSelfCalibrationStatus();
+            }
+            sl::zed::Mat l = zed->retrieveImage(static_cast<sl::zed::SIDE> (0));
+            slMat2cvMat(l).copyTo(image1);
+            slMat2cvMat(zed->retrieveImage(static_cast<sl::zed::SIDE> (1))).copyTo(img);
+            
+            int height = l.height;
+            
+           	resize(image1, image1, Size(), 480.0f/height, 480.0f/height, INTER_AREA);
+			resize(img, img, Size(), 480.0f/height, 480.0f/height, INTER_AREA);
+            //std::cout << image1.size().width << endl;
+			cvtColor(image1(Rect(106,0,640,480)), image1, CV_BGR2GRAY);
+			cvtColor(img(Rect(106,0,640,480)), image2, CV_BGR2GRAY);
+			
+			cpyImageForCuda((unsigned char*)(image1.data), left);
+			cpyImageForCuda((unsigned char*)(image2.data), right);
+		}		
+		
+		// Capture DUO frame
+		//PDUOFrame pFrameData = GetDUOFrame();
+		//if(pFrameData == NULL) continue;
+		
+		
+		//cpyImageForCuda((unsigned char*)pFrameData->leftData, left);
+		//cpyImageForCuda((unsigned char*)pFrameData->rightData, right);
+		
+		//remap(left, left, mapL1, mapL2, INTER_AREA);
+		//remap(right, right, mapR1, mapR2, INTER_AREA);
+		//cameraCtrl.Update();
+		
+		//medianBlur(left, left,3);
+		//medianBlur(right, right, 3);
+		
+		
+		
+  		//equalizeHist(left, left );
+  		//equalizeHist(right, right );
+		auto start_blur = std::chrono::system_clock::now();
+
+		disp3mj(right, left, disp, depth, g_imgL, g_imgR, g_disp, g_tempsC, g_tempsUS);
+		
+		auto end_blur = std::chrono::system_clock::now();
+		
+		disp.convertTo(disp,CV_8UC1); 
+        // Apply the colormap:
+		disp.convertTo(disp32, CV_32F, 1.);
+        applyColorMap(disp, dispColor, COLORMAP_JET);
+		//blur(depth, depth, Size( 7, 1 ), Point(-1,-1));
+		//bilateralFilter ( depth, depth, 3, 6, 6 );
+        applyColorMap(depth, depthColor, COLORMAP_JET);
+		
+		/*gL.upload(left);
+		gR.upload(right);
+  		sbm(gL, gR, dst);
+  		dst.download(ocvDisp);
+  		ocvDisp.convertTo(ocvDisp,CV_8UC1); 
+        applyColorMap(4*ocvDisp, ocvDisp, COLORMAP_JET);*/
+		
+		hconcat(left, right, d1);  
+		hconcat(dispColor, depthColor, d2);
+		cvtColor(d1, d1, CV_GRAY2RGB);
+		vconcat(d1, d2, display);
+		//resize(display, display, Size(), 0.5, 0.5, INTER_NEAREST);
+		imshow("Display", display);
+		counter++;
+		auto stop = std::chrono::system_clock::now();
+  		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+  		
+  		auto duration_blur = std::chrono::duration_cast<std::chrono::microseconds>(end_blur - start_blur);
+  		 
+		if(duration.count()>1000){
+			//system("clear");	
+			shift++;
+			std::cout <<"FPS: "<< counter <<" "<< duration.count()/(float)counter <<  std::endl;
+			std::cout <<"DISPARITY: "<< duration_blur.count()/1000.0f << "ms" << std::endl;
+			counter = 0;
+			start = std::chrono::system_clock::now();
+		}
+		
+	}
+	waitKey(0);
+	
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr clouded(new pcl::PointCloud<pcl::PointXYZRGB>);
+	Mat image(img(Rect(106,0,640,480)));
+	matToPointXYZ(image, disp32, cloud);
+	//matToPointXYZ(left, disp32, cloud);
+	pcl::FastBilateralFilterOMP<pcl::PointXYZRGB> filter;
+	int rows = right.rows;
+    int cols = right.cols;
+    clouded->height = (uint32_t) rows;
+    clouded->width = (uint32_t) cols;
+    clouded->is_dense = true;
+    clouded->points.resize(clouded->width * clouded->height);
+	cout << cloud->isOrganized() << endl;
+	filter.setInputCloud(cloud);
+	filter.setNumberOfThreads(200);
+	filter.applyFilter(*clouded);
+	pcl::PLYWriter writer;
+	writer.write ("test_pcd.ply", *cloud, true, true);
+	//writer.write ("test_pcded.ply", *clouded, true, true);
+	//pcl::io::savePCDFileASCII ("test_pcd.pcd", *cloud);*/
+	cudaDestroyDisp3(g_imgL, g_imgR, g_disp, g_tempsC, g_tempsUS);
+}
+
+void rectifParams(Mat &lU, Mat &rU, Mat &lR, Mat &rR, Mat &R, Mat &T){
+
+    double fxL = 385.781537922;
+    double fyL = 386.770182219;
+    double cxL = 325.28735922;
+    double cyL = 219.111593446;
+    lU.at<double>(0, 0) = fxL;
+    lU.at<double>(1, 1) = fyL;
+    lU.at<double>(0, 2) = cxL;
+    lU.at<double>(1, 2) = cyL;
+    lU.at<double>(2, 2) = 1.0;
+    
+    double r1L = -0.115369267631;
+    double r2L = 0.0;
+    lR.at<double>(0,0) = r1L;
+    lR.at<double>(0,1) = r2L;
+    
+    double fxR = 382.188010972;
+    double fyR = 382.624359906;
+    double cxR = 305.959504;
+    double cyR = 236.717857874;
+    rU.at<double>(0, 0) = fxR;
+    rU.at<double>(1, 1) = fyR;
+    rU.at<double>(0, 2) = cxR;
+    rU.at<double>(1, 2) = cyR;
+    rU.at<double>(2, 2) = 1.0;
+    
+    double r1R = -0.113198501368;
+    double r2R = 0.0;
+    rR.at<double>(0,0) = r1R;
+    rR.at<double>(0,1) = r2R;
+    
+    R.at<double>(0, 0) = 0.999978503734;
+    R.at<double>(0, 1) = 0.00585549331363;
+    R.at<double>(0, 2) = 0.00295046925795;
+    R.at<double>(1, 0) = -0.00586456451925;
+    R.at<double>(1, 1) = 0.999978074523;
+    R.at<double>(1, 2) = 0.00307528161444;
+    R.at<double>(2, 0) = -0.00293239727657;
+    R.at<double>(2, 1) = -0.0030925187247;
+    R.at<double>(2, 2) = 0.999990918646 ;
+   
+    T.at<double>(0, 0) = -28.9602486665;
+    T.at<double>(1, 0) = 0.325331067345;
+    T.at<double>(2, 0) = 0.659922450245;
+}
+
+void matToPointXYZ(cv::Mat &color, cv::Mat &disp,
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
+    const double u0 = 223.5785350799561;
+    const double v0 = 327.9689445495605;
+    int rows = color.rows;
+    int cols = color.cols;
+    cloud->height = (uint32_t) rows;
+    cloud->width = (uint32_t) cols;
+    cloud->is_dense = true;
+    cloud->points.resize(cloud->width * cloud->height);
+    for (unsigned int u = 0; u < rows; ++u) {
+      for (unsigned int v = 0; v < cols; ++v) {
+        float Xw = 0, Yw = 0, Zw = 0;
+		if(disp.at<float>(u, v) > 0)
+			Zw = FL_BL/disp.at<float>(u, v);
+		else
+			 Zw = 11;
+        Xw = (float) ((v - v0) * Zw / FOCAL_LENGTH);
+        Yw = (float) ((u - u0) * Zw / FOCAL_LENGTH);
+
+        cloud->at(v, u).b = /*color.at<uchar>(u, v);//*/color.at<cv::Vec3b>(u, v)[0];
+        cloud->at(v, u).g = /*color.at<uchar>(u, v);//*/color.at<cv::Vec3b>(u, v)[1];
+        cloud->at(v, u).r = /*color.at<uchar>(u, v);//*/color.at<cv::Vec3b>(u, v)[2];
+        cloud->at(v, u).x = Xw;
+        cloud->at(v, u).y = Yw;
+        cloud->at(v, u).z = Zw;
+        
+    }
+  }
+}
+	/*
+
+	//char* csdfile = "/home/ubuntu/Documents/DUO3D-ARM-v1.0.50.26/DUOSDK/Samples/OpenCV/Sample-01-cvShowImage/csound.csd";
+	//Scene *scene = new Scene(SCENE_MIN_DEPTH, SCENE_MAX_DEPTH);
+	//CSoundManager *cs = new CSoundManager(scene, csdfile);
+	//cs->Start();
+	//cs->Stop();
+}
+
+
+
+/*    double fxL = 385.675380919;
+    double fyL = 385.954329526;
+    double cxL = 324.171669424;
+    double cyL = 223.929227171;
+    lU.at<double>(0, 0) = fxL;
+    lU.at<double>(1, 1) = fyL;
+    lU.at<double>(0, 2) = cxL;
+    lU.at<double>(1, 2) = cyL;
+    lU.at<double>(2, 2) = 1.0;
+    
+    double r1L = -0.111450237218;
+    double r2L = -0.0177005620878;
+    Mat lR = Mat::zeros(1, 4, CV_64FC1);
+    lR.at<double>(0,0) = r1L;
+    lR.at<double>(0,1) = r2L;
+    
+    double fxR = 382.23167021;
+    double fyR = 382.439655001;
+    double cxR = 305.931305581;
+    double cyR = 241.47113977;
+    rU.at<double>(0, 0) = fxR;
+    rU.at<double>(1, 1) = fyR;
+    rU.at<double>(0, 2) = cxR;
+    rU.at<double>(1, 2) = cyR;
+    rU.at<double>(2, 2) = 1.0;
+    
+    double r1R = -0.11242560225;
+    double r2R = -0.00762108671039;
+    Mat rR = Mat::zeros(1, 4, CV_64FC1);
+    rR.at<double>(0,0) = r1R;
+    rR.at<double>(0,1) = r2R;
+    
+    Mat R = Mat::zeros(3, 3, CV_64FC1);
+    R.at<double>(0, 0) = 0.999989431215;
+    R.at<double>(0, 1) = 0.00459342955651;
+    R.at<double>(0, 2) = -0.000194586152118;
+    R.at<double>(1, 0) = -0.00459281664531;
+    R.at<double>(1, 1) = 0.999984828646;
+    R.at<double>(1, 2) = 0.00304113696687;
+    R.at<double>(2, 0) = 0.000208552448411;
+    R.at<double>(2, 1) = -0.00304021112722;
+    R.at<double>(2, 2) = 0.9999953568;
+   
+    Mat T = Mat::zeros(3, 1, CV_64FC1);
+    T.at<double>(0, 0) = -30.2446439979;
+    T.at<double>(1, 0) = 0.382365480057;
+    T.at<double>(2, 0) = 1.35237960952;
+    */
+    
+    //CIRCLES 1
+    /*double fxL = 385.781537922;
+    double fyL = 386.770182219;
+    double cxL = 325.28735922;
+    double cyL = 219.111593446;
+    lU.at<double>(0, 0) = fxL;
+    lU.at<double>(1, 1) = fyL;
+    lU.at<double>(0, 2) = cxL;
+    lU.at<double>(1, 2) = cyL;
+    lU.at<double>(2, 2) = 1.0;
+    
+    double r1L = -0.115369267631;
+    double r2L = 0.0;
+    Mat lR = Mat::zeros(1, 4, CV_64FC1);
+    lR.at<double>(0,0) = r1L;
+    lR.at<double>(0,1) = r2L;
+    
+    double fxR = 382.188010972;
+    double fyR = 382.624359906;
+    double cxR = 305.959504;
+    double cyR = 236.717857874;
+    rU.at<double>(0, 0) = fxR;
+    rU.at<double>(1, 1) = fyR;
+    rU.at<double>(0, 2) = cxR;
+    rU.at<double>(1, 2) = cyR;
+    rU.at<double>(2, 2) = 1.0;
+    
+    double r1R = -0.113198501368;
+    double r2R = 0.0;
+    Mat rR = Mat::zeros(1, 4, CV_64FC1);
+    rR.at<double>(0,0) = r1R;
+    rR.at<double>(0,1) = r2R;
+    
+    Mat R = Mat::zeros(3, 3, CV_64FC1);
+    R.at<double>(0, 0) = 0.999978503734;
+    R.at<double>(0, 1) = 0.00585549331363;
+    R.at<double>(0, 2) = 0.00295046925795;
+    R.at<double>(1, 0) = -0.00586456451925;
+    R.at<double>(1, 1) = 0.999978074523;
+    R.at<double>(1, 2) = 0.00307528161444;
+    R.at<double>(2, 0) = -0.00293239727657;
+    R.at<double>(2, 1) = -0.0030925187247;
+    R.at<double>(2, 2) = 0.999990918646 ;
+   
+    Mat T = Mat::zeros(3, 1, CV_64FC1);
+    T.at<double>(0, 0) = -28.9602486665;
+    T.at<double>(1, 0) = 0.325331067345;
+    T.at<double>(2, 0) = 0.659922450245;
+    */
+    
+    
+        //CIRCLES 2
+    /*    double fxL = 385.798795301;
+    double fyL = 386.784692895;
+    double cxL = 325.339356744;
+    double cyL = 219.118364841;
+    lU.at<double>(0, 0) = fxL;
+    lU.at<double>(1, 1) = fyL;
+    lU.at<double>(0, 2) = cxL;
+    lU.at<double>(1, 2) = cyL;
+    lU.at<double>(2, 2) = 1.0;
+    
+    double r1L = -0.118873900504;
+    double r2L = 0.00876671684306;
+    Mat lR = Mat::zeros(1, 4, CV_64FC1);
+    lR.at<double>(0,0) = r1L;
+    lR.at<double>(0,1) = r2L;
+    
+    double fxR = 382.270707025;
+    double fyR = 382.730131838;
+    double cxR = 305.901833445;
+    double cyR = 236.768029997;
+    rU.at<double>(0, 0) = fxR;
+    rU.at<double>(1, 1) = fyR;
+    rU.at<double>(0, 2) = cxR;
+    rU.at<double>(1, 2) = cyR;
+    rU.at<double>(2, 2) = 1.0;
+    
+    double r1R = -0.120308217576;
+    double r2R = 0.0176862800281;
+    Mat rR = Mat::zeros(1, 4, CV_64FC1);
+    rR.at<double>(0,0) = r1R;
+    rR.at<double>(0,1) = r2R;
+    
+    Mat R = Mat::zeros(3, 3, CV_64FC1);
+    R.at<double>(0, 0) = 0.999977472977;
+    R.at<double>(0, 1) = 0.00586909963887;
+    R.at<double>(0, 2) = 0.00325687094129;
+    R.at<double>(1, 0) = -0.00587875460569;
+    R.at<double>(1, 1) = 0.99997833056;
+    R.at<double>(1, 2) = 0.00296287948043;
+    R.at<double>(2, 0) = -0.00323941093183;
+    R.at<double>(2, 1) = -0.00298195908063;
+    R.at<double>(2, 2) = 0.999990307021 ;
+   
+    Mat T = Mat::zeros(3, 1, CV_64FC1);
+    T.at<double>(0, 0) = -28.9635579257;
+    T.at<double>(1, 0) = 0.32315785343;
+    T.at<double>(2, 0) = 0.650483833158;
+    */
+    
