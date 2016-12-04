@@ -4,7 +4,7 @@
 
 # Install dependencies
  - Csound:<br />
-sudo apt-get install csound
+sudo apt-get install csound<br />
 sudo apt-get install csnd6-dev
 
 
