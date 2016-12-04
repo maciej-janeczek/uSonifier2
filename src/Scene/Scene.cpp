@@ -3,7 +3,8 @@
 #define OBSTACLE 1
 #define WALL 2
 
-Scene::Scene(int minDepth, int maxDepth){
+Scene::Scene(View* view, int minDepth, int maxDepth){
+	this->view = view;
 	this->minDepth = minDepth;
 	this->maxDepth = maxDepth;
 }
@@ -15,7 +16,8 @@ vector<Obstacle*> Scene::getScene(){
 	return obstacles;//Should be coppied
 }
 
-void Scene::update(vector<vector<Point>*> points){
+void Scene::updateFromView(){
+    vector<vector<Point>*> points = view->getObstacles();
 	obstacles.clear();
 	
 	for(size_t i = 0;i<points.size(); i++){

@@ -1,17 +1,19 @@
 
 #include "../pch.h"
 #include "Obstacle.h"
+#include "../Stereo/dataTypes/view.hpp"
 
 using namespace cv;
 using namespace std;
 
 class Scene{
 	public:
-		Scene(int minDepth, int maxDept);
+		Scene(View* view, int minDepth, int maxDept);
 		~Scene();
 		vector<Obstacle*> getScene();
-		void update(vector<vector<Point>*> points);
+		void updateFromView();
 	public:
+		View* view;
 		int maxDepth;
 		int minDepth;
 	private:
