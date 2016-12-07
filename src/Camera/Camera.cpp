@@ -26,22 +26,22 @@ cam::Camera::Camera(cam::type type, stereo::Size2d size, cam::color color,
 
     switch (this->type) {
     case cam::type::DUO:
-        this->size = stereo::Size2d(640, 480, 1);
+        this->size = stereo::Size2d(640, 480, 4);
         this->paramsDepth.baseline = 0.03;
         this->paramsDepth.focalLength = 333.33;
         /// Open DUO camera and start capturing
-        printf("DUOLib Version:       v%s\n", GetLibVersion());
-        // if(!OpenDUOCamera(this->size.getWidth(), this->size.getHeight(),
-        // this->fps))
-        //{
-        //    printf("Could not open DUO camera\n");
-        //}else{
+        //printf("DUOLib Version:       v%s\n", GetLibVersion());
+         if(!OpenDUOCamera(this->size.getWidth(), this->size.getHeight(),
+         this->fps))
+        {
+            printf("Could not open DUO camera\n");
+        }else{
         opened = 1;
-        //}
+        }
 
         if (color == cam::color::GRAY) {
-            left = cv::Mat(size.getHeight(), size.getWidth(), CV_8UC1);
-            right = cv::Mat(size.getHeight(), size.getWidth(), CV_8UC1);
+            left = cv::Mat(size.getHeight(), size.getWidth(), CV_8UC4);
+            right = cv::Mat(size.getHeight(), size.getWidth(), CV_8UC4);
         } else {
             printf("DUO camera can only operate with Grayscale images, set "
                  "color::GRAY\n");
@@ -56,9 +56,10 @@ cam::Camera::Camera(cam::type type, stereo::Size2d size, cam::color color,
             printf("Audo brightness adjustment initialised\n");
         }
 
-        /// Initialize Rectofocation
+        /// Initialize Rectifocation
         if (this->autoRectif) {
-            this->initRectificationParams(duoParamsSet::CIRCLES1);
+
+            this->initRectificationParams(duoParamsSet::CIRCLES2);
             cv::Mat Q, R1, R2, P1, P2;
             cv::stereoRectify(paramsRect.lU, paramsRect.lR, paramsRect.rU,
                              paramsRect.rR, Size(640, 480), paramsRect.R,
@@ -89,18 +90,30 @@ void cam::Camera::update() {
     if (opened) {
         PDUOFrame pFrameData = GetDUOFrame();
         if (pFrameData == NULL)
-        return;
+            return;
+        /// update images from camera
+        for(int x = 0; x < 640*480; x++){
+            this->left.data[4*x] = pFrameData->leftData[x];
+            this->left.data[4*x+1] = pFrameData->leftData[x];
+            this->left.data[4*x+2] = pFrameData->leftData[x];
+
+
+            this->right.data[4*x] = pFrameData->rightData[x];
+            this->right.data[4*x+1] = pFrameData->rightData[x];
+            this->right.data[4*x+2] = pFrameData->rightData[x];
+        }
+
+        //cudaMemcpy(this->left.data, pFrameData->leftData,
+        //           this->size.getSize() * sizeof(unsigned char), cudaMemcpyHostToHost);
+        //cudaMemcpy(this->right.data, pFrameData->rightData,
+        //           this->size.getSize() * sizeof(unsigned char), cudaMemcpyHostToHost);
     }
 
-    /// update images from camera
-    cudaMemcpy(left.data, pFrameData->leftData,
-             size.getSize() * sizeof(unsigned char), cudaMemcpyHostToHost);
-    cudaMemcpy(right.data, pFrameData->rightData,
-             size.getSize() * sizeof(unsigned char), cudaMemcpyHostToHost);
+
 
     /// rectify images based on initialised params
     if (autoRectif) {
-        cv::remap(left, left, paramsRect.mapL1, paramsRect.mapL2, cv::INTER_AREA);
+        cv::remap(left, left, paramsRect.mapL1, paramsRect.mapL2, INTER_AREA);
         cv::remap(right, right, paramsRect.mapR1, paramsRect.mapR2, INTER_AREA);
     }
 
@@ -123,12 +136,12 @@ void cam::Camera::update() {
 }
 
 void cam::Camera::initRectificationParams(cam::duoParamsSet set) {
-  paramsRect.rU = Mat::zeros(3, 3, CV_64FC1);
-  paramsRect.lR = Mat::zeros(1, 4, CV_64FC1);
-  paramsRect.rR = Mat::zeros(1, 4, CV_64FC1);
-  paramsRect.R = Mat::zeros(3, 3, CV_64FC1);
-  paramsRect.T = Mat::zeros(3, 1, CV_64FC1);
-
+    paramsRect.lU = Mat::zeros(3, 3, CV_64FC1);
+    paramsRect.rU = Mat::zeros(3, 3, CV_64FC1);
+    paramsRect.lR = Mat::zeros(1, 4, CV_64FC1);
+    paramsRect.rR = Mat::zeros(1, 4, CV_64FC1);
+    paramsRect.R = Mat::zeros(3, 3, CV_64FC1);
+    paramsRect.T = Mat::zeros(3, 1, CV_64FC1);
   switch (set) {
   case cam::duoParamsSet::CHESSBOARD1:
     paramsRect.lU.at<double>(0, 0) = 385.781537922;

@@ -118,8 +118,8 @@ __global__ void macher::global::match8x8(unsigned short* out, const int w, const
     if(threadIdx.y < 4){
         out[imgShift+threadIdx.x] = costs[threadIdx.y][threadIdx.x];
         out[imgShift+threadIdx.x+32] = costs[threadIdx.y][threadIdx.x+32];
-        out[imgShift+threadIdx.x+64] = costs[threadIdx.y][threadIdx.x+64];
-        out[imgShift+threadIdx.x+96] = costs[threadIdx.y][threadIdx.x+96];
+        //out[imgShift+threadIdx.x+64] = costs[threadIdx.y][threadIdx.x+64];
+        //out[imgShift+threadIdx.x+96] = costs[threadIdx.y][threadIdx.x+96];
     }
 }
 

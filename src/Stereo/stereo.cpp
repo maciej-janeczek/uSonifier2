@@ -22,6 +22,7 @@ stereo::Macher::Macher(View* view, unsigned int minDisp, unsigned int maxDisp, u
     this->temps.sizes[0] = 3;
     this->temps.sizes[1] = 3;
     this->temps.sizes[2] = 3;
+    std::cout << "Macher created for W=" << view->size.getWidth() << " H=" << view->size.getHeight() << " C=" << view->size.getChannels() << std::endl;
     cu::stereo::allocTemps(this->temps, view->size.getWidth(), view->size.getHeight(), view->size.getChannels());
 }
 

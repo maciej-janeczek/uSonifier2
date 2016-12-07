@@ -233,7 +233,7 @@ void CameraCtrl::Update()
 	if( out > 200 )
 	{
 		gain     = 100;//out - 200;
-		diodes   = out - 200;
+		diodes   = 0;//out - 200;
 		exposure = 100;
 	}
 	else if( out > 100 )

@@ -1,4 +1,4 @@
-#pragma one
+#pragma once
 
 #include "../../Camera/Camera.h"
 #include "cuda/cuTypes.h"

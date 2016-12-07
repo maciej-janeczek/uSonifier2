@@ -1,9 +1,23 @@
-#include "DUOLib.h"
+///////////////////////////////////////////////////////////////////////////////////
+// This code sample demonstrates the use of DUO SDK in your own applications
+// For updates and file downloads go to: http://duo3d.com/
+// Copyright 2014-2016 (c) Code Laboratories, Inc.  All rights reserved.
+///////////////////////////////////////////////////////////////////////////////////
+#ifndef DUO_H
+#define DUO_H
 
-
-
-static struct termios _old, _new;
-	
+// Include some generic header files
+#if defined(WIN32)
+	#include <SDKDDKVer.h>
+	#include <windows.h>
+	#include <stdio.h>
+	#include <conio.h>
+#elif defined(__linux__) || defined(__APPLE__)
+	#include <stdio.h>
+	#include <termios.h>
+	#include <unistd.h>
+	#include <fcntl.h>
+	static struct termios _old, _new;
 	/* Initialize new terminal i/o settings */
 	void initTermios(int echo) 
 	{
@@ -57,9 +71,14 @@ static struct termios _old, _new;
 	  }
 	  return 0;
 	}
-	
+#endif
 
-	
+// Include DUO API header file
+#include "DUOLib.h"
+
+#include <opencv2/opencv.hpp>
+using namespace cv;
+
 // Some global variables
 static DUOInstance _duo = NULL;
 static PDUOFrame _pFrameData = NULL;
@@ -141,16 +160,12 @@ static bool OpenDUOCamera(int width, int height, float fps)
 
 	// Check if we support given resolution (width, height, binning, fps)
 	DUOResolutionInfo ri;
-	if(!EnumerateResolutions(&ri, 1, width, height, binning, fps)){
-		printf("Resolution error\n");
+	if(!EnumerateDUOResolutions(&ri, 1, width, height, binning, fps))
 		return false;
 
-	}
-		
-	if(!OpenDUO(&_duo)){
-		printf("Can't open!\n");
+	if(!OpenDUO(&_duo))
 		return false;
-	}
+
 	char tmp[260];
 	// Get and print some DUO parameter values
 	GetDUODeviceName(_duo,tmp);
@@ -170,7 +185,6 @@ static bool OpenDUOCamera(int width, int height, float fps)
 		return false;
 
 	return true;
-	
 }
 
 // Waits until the new DUO frame is ready and returns it
@@ -219,10 +233,4 @@ static void SetLed(float value)
 	SetDUOLedPWM(_duo, value);
 }
 
-static void EnableUndistort()
-{
-	if(_duo == NULL)
-		return;
-	SetDUOUndistort(_duo, 1);
-	SetDUOCameraSwap(_duo, 1);
-}
+#endif // SAMPLE_H

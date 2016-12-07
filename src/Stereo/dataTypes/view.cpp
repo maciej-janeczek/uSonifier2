@@ -16,14 +16,16 @@ View::View(stereo::Size2d size, unsigned char *left_cpu,
 }
 
 View::View(cam::Camera *camera) {
-  this->camera = camera;
-  this->size = camera->size;
-  this->left_cpu = camera->left.data;
-  this->right_cpu = camera->right.data;
-  this->angles = glm::vec3(0, 0, 0);
-  this->origin = glm::vec3(0, 0, 0);
-  cu::init(&(this->data_gpu), size.getHeight(), size.getWidth(),
+    this->camera = camera;
+    this->size = camera->size;
+    this->left_cpu = camera->left.data;
+    this->right_cpu = camera->right.data;
+    this->angles = glm::vec3(0, 0, 0);
+    this->origin = glm::vec3(0, 0, 0);
+    cu::init(&(this->data_gpu), size.getHeight(), size.getWidth(),
            size.getChannels());
+    std::cout << "View created for W=" << size.getWidth() << " H=" << size.getHeight() << " C=" << size.getChannels() << std::endl;
+
 }
 
 View::~View() {
@@ -37,7 +39,7 @@ int View::update_Old(glm::vec3 angles) {
 
 int View::updateFromCam() {
   camera->update();
-  cu::update(&(this->data_gpu), this->left_cpu, this->right_cpu);
+  cu::update(&(this->data_gpu), camera->left.data, camera->right.data);
 }
 
 int View::grab(float *output) { return cu::grab(&data_gpu, output); }

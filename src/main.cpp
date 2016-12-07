@@ -10,40 +10,44 @@
 int main(void){
     /// Initialize DUO MLX camera
     cam::Camera *camera;
-    camera = new cam::Camera(cam::type::DUO, stereo::Size2d(640, 480, 1), cam::color::GRAY, 30, 0, 0, 0, 0);
+    camera = new cam::Camera(cam::type::DUO, stereo::Size2d(640, 480, 1), cam::color::GRAY, 20, 1, 1, 0, 0);
 
     /// Create View context with binded Camera
     View* view;
     view = new View(camera);
 
     /// Create depth calculation for particular View
-    stereo::Macher macher(view, 0, 63, 1, 80);
+    stereo::Macher* macher;
+    macher = new stereo::Macher(view, 0, 63, 1, 80);
 
     /// Create Scene and bind view to it
-    Scene* scene = new Scene(view, 0, 5);
+    //Scene* scene = new Scene(view, 0, 5);
 
     /// Create CsoundManager and bind Scene to it
-    char* csdfile = "../resources/MovingPlane.csd";
-    CSoundManager csound(scene, csdfile);
-    csound.Start();
+    //char* csdfile = "../resources/MovingPlane.csd";
+    //CSoundManager csound(scene, csdfile);
+    //csound.Start();
 
     /// Init display window
-	namedWindow( "Display", WINDOW_AUTOSIZE);
+	//namedWindow( "Display", WINDOW_AUTOSIZE);
+
 
     /// Start pipeline with csound working in separate thread
+    float* dataOut = (float*)malloc(640 * 480 * sizeof(float));
 	while((cvWaitKey(5) & 0xff) != 27)
 	{
         /// image from camera -> disparity -> u-disparity -> plan view -> get obstacles
         view->updateFromCam();
-        macher.perform_AEMBM();
-        scene->updateFromView();
-
+        macher->perform_AEMBM();
+     //   scene->updateFromView();
+        view->grab(dataOut);
+        cv::Mat image3 = cv::Mat(480, 640, CV_32FC1, dataOut);
         /// display image (to be introduced)
-        imshow("Display", camera->left);
+        imshow("Display", 4*image3);
 	}
 	waitKey(0);
 
-    csound.Stop();
+    //csound.Stop();
 
     delete (camera);
     delete (view);

@@ -19,7 +19,8 @@ elseif(COMPILER_SUPPORTS_CXX0X)
 else()
     message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
-set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} -std=c++11 -use_fast_math -arch sm_32)
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} -std=c++11 -use_fast_math)
+list(APPEND CUDA_NVCC_FLAGS -gencode arch=compute_30,code=sm_32)
 #set(CUDA_SEPARABLE_COMPILATION ON)
 
 ### Find all cpp files ###

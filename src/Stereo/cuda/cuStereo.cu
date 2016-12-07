@@ -64,7 +64,7 @@ void cu::stereo::match_AEMBM(
     dim3 thPerBlock(16, 16);
     dim3 blocks(w / thPerBlock.x, h / thPerBlock.y);
     cu::common::global::uchar4texToUchar1 << <blocks, thPerBlock>>> (temps.tmpChars[0], w, h);
-    cu::improc::global::edgeDetect << <blocks, thPerBlock>>> (temps.tmpChars[0], temps.tmpChars[1], 100, w, h);
+    cu::improc::global::edgeDetect << <blocks, thPerBlock>>> (temps.tmpChars[0], temps.tmpChars[1], 70, w, h);
     cudaDeviceSynchronize();
 
     dim3 threadsPerBlock24(24, 24);
@@ -91,25 +91,25 @@ void cu::stereo::match_AEMBM(
     macher::global::match8x8<<<blocks8, thPerBlock8>>>((unsigned short*)temps.tmpInts[0], w, h);
     //cudaDeviceSynchronize();
 
-    dim3 thPerBlock3(66, 10);
-    dim3 blocks3(w / 64, h / 8);
-    macher::global::match3x3<<<blocks3, thPerBlock3>>>((unsigned short*)temps.tmpInts[2], w, h);
-    cudaDeviceSynchronize();
+       dim3 thPerBlock3(66, 10);
+       dim3 blocks3(w / 64, h / 8);
+       macher::global::match3x3<<<blocks3, thPerBlock3>>>((unsigned short*)temps.tmpInts[2], w, h);
+       cudaDeviceSynchronize();
 
-    dim3 thPerBlock32(64);
-    dim3 blocks32(w / 16, h / 16);
-    macher::global::match8to32<<<blocks32, thPerBlock32>>>((unsigned short*)temps.tmpInts[0], (unsigned int*)temps.tmpInts[1], w, h);
-    cudaDeviceSynchronize();
+      dim3 thPerBlock32(64);
+      dim3 blocks32(w / 16, h / 16);
+      macher::global::match8to32<<<blocks32, thPerBlock32>>>((unsigned short*)temps.tmpInts[0], (unsigned int*)temps.tmpInts[1], w, h);
+      cudaDeviceSynchronize();
 
-    dim3 thPerBlockDisp(16, 16);
-    dim3 blocksDisp(w / thPerBlockDisp.x, h / thPerBlockDisp.y);
-    macher::global::matcher_AEMBMv1<< <blocksDisp, thPerBlockDisp>>>(temps.tmpChars[2],(unsigned short*)temps.tmpInts[2], (unsigned int*)temps.tmpInts[1], out, w, h);
-    cudaDeviceSynchronize();
+      dim3 thPerBlockDisp(16, 16);
+      dim3 blocksDisp(w / thPerBlockDisp.x, h / thPerBlockDisp.y);
+      macher::global::matcher_AEMBMv1<< <blocksDisp, thPerBlockDisp>>>(temps.tmpChars[2],(unsigned short*)temps.tmpInts[2], (unsigned int*)temps.tmpInts[1], out, w, h);
+      cudaDeviceSynchronize();
 
-    //bee::cu::common::global::uchar1toFloat << <blocks, thPerBlock>>> (temps.tmpChars[0], out, w, h, 1 / 255.0f);
-    // copyTexToOut<<<blocks, thPerBlock>>>(w, h, out);
-    cudaUnbindTexture(texRight);
-    cudaUnbindTexture(texLeft);
+      //bee::cu::common::global::uchar1toFloat << <blocks, thPerBlock>>> (temps.tmpChars[0], out, w, h, 1 / 255.0f);
+      // copyTexToOut<<<blocks, thPerBlock>>>(w, h, out);
+      cudaUnbindTexture(texRight);
+      cudaUnbindTexture(texLeft);
 
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
