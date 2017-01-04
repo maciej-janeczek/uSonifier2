@@ -1,8 +1,5 @@
 #include "Scene.h"
 
-#define OBSTACLE 1
-#define WALL 2
-
 Scene::Scene(View* view){
 	this->view = view;
 }

@@ -31,6 +31,7 @@ public:
     int areaWidth;  /// area of the considered depth image in pixels (Width)
     int areaDepth;  /// area of the considered depth image in pixels (Depth)
 
+    cv::Mat depthRectPrev;
     cv::Mat depthPrev;
     void depthSegmentation();
 

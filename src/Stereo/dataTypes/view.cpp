@@ -91,6 +91,8 @@ void View::depthSegmentation(){
     cv::erode(this->depth, this->depth, element);
     cv::erode(this->depth, this->depth, element);
 
+    depth.convertTo(depthPrev, CV_8UC1);
+
     cv::threshold(this->depth, this->depthTH, 150, 255, THRESH_BINARY);
     cv::threshold(this->depth, this->depth, 50, 255, THRESH_BINARY);
 
@@ -107,7 +109,7 @@ void View::depthSegmentation(){
     }
 
     std::cout << "No. of objects=" << obstacles.size() << std::endl;
-    depth.convertTo(depthPrev, CV_8UC1);
+    depth.convertTo(depthRectPrev, CV_8UC1);
     for (auto &o : obstacles) // access by reference to avoid copying
     {
         //std::cout << "Rect at: x=" << o.x <<" y=" << o.z_dist << " w=" << o.width << std::endl;
@@ -116,6 +118,5 @@ void View::depthSegmentation(){
 
 
 }
-
 
 vector<Obstacle>* View::getObstacles(){ return &obstacles; }

@@ -43,9 +43,11 @@ int main(int argc, char **argv){
         scene->updateFromView();
 
         /// display image
-        //view->grab(dataOut);
-        //cv::Mat image3 = cv::Mat(480, 640, CV_32FC1, dataOut);
-        imshow("Display", view->depthPrev);
+        view->grab(dataOut);
+        cv::Mat image3 = cv::Mat(480, 640, CV_32FC1, dataOut);
+        imshow("Display1", view->depthPrev);
+        imshow("Display2", view->depthRectPrev);
+        imshow("Display3", image3/16);
 
 	}
 	waitKey(0);

@@ -4,8 +4,8 @@
 #include <functional>
 #include <csound/csound.hpp>
 #include <csound/csPerfThread.hpp>
-/*
-void sonify(Csound*, CsoundPerformanceThread*, Scene* , float , unsigned int* );
+
+//void sonify(Csound*, CsoundPerformanceThread*, Scene* , float , unsigned int* );
 
 class CSoundManager{
 	public:
@@ -13,8 +13,9 @@ class CSoundManager{
 		~CSoundManager();
 		void Start();
 		void Stop();
+        void sonify(Csound* cs, CsoundPerformanceThread* csThread, Scene* scene, float time, unsigned int* freeInstr);
 	private:
-		void callback(function<void(Csound*, CsoundPerformanceThread*, Scene*, float, unsigned int*)>, unsigned int);
+		void call(unsigned int);
 		
 	
 	private:
@@ -27,5 +28,5 @@ class CSoundManager{
 		Scene* scene;
 
 
-};*/
+};
 
