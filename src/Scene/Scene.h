@@ -10,7 +10,7 @@ class Scene{
 	public:
 		Scene(View* view);
 		~Scene();
-		vector<Obstacle> getScene();
+		vector<Obstacle>* getScene();
 		void updateFromView();
 	public:
 		View* view;

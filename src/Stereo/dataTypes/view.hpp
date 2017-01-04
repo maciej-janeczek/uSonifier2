@@ -17,7 +17,7 @@ public:
     int update_Old(glm::vec3 angles);
     int updateFromCam();
     int grab(float *output);
-    vector<Obstacle> getObstacles();
+    vector<Obstacle>* getObstacles();
 
     stereo::Size2d size = stereo::Size2d(0, 0, 0);
     cu::data_gpu data_gpu;
@@ -32,13 +32,10 @@ public:
     int areaDepth;  /// area of the considered depth image in pixels (Depth)
 
     cv::Mat depthPrev;
-    void performUDepth();
+    void depthSegmentation();
 
 
 private:
-    void threshold();
-    void segmentation();
-
     cv::Mat depth;
     cv::Mat depthTH;
     vector<Obstacle> obstacles;

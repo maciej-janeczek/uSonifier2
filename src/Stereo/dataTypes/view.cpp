@@ -53,7 +53,7 @@ int View::updateFromCam() {
 
 int View::grab(float *output) { return cu::grab(&data_gpu, output); }
 
-void View::performUDepth(){
+void View::depthSegmentation(){
     cu::grab(&data_gpu, this->disparity);
     cv::Mat disp = cv::Mat(480, 640, CV_32FC1, this->disparity);
     cv::medianBlur(disp, disp, 3);
@@ -110,7 +110,7 @@ void View::performUDepth(){
     depth.convertTo(depthPrev, CV_8UC1);
     for (auto &o : obstacles) // access by reference to avoid copying
     {
-        std::cout << "Rect at: x=" << o.x <<" y=" << o.z_dist << " w=" << o.width << std::endl;
+        //std::cout << "Rect at: x=" << o.x <<" y=" << o.z_dist << " w=" << o.width << std::endl;
         cv::rectangle(depthPrev, o.bBox, cv::Scalar(255, 255, 255));
     }
 
@@ -118,10 +118,4 @@ void View::performUDepth(){
 }
 
 
-void View::threshold(){
-
-}
-
-vector<Obstacle> View::getObstacles(){
-
-}
+vector<Obstacle>* View::getObstacles(){ return &obstacles; }

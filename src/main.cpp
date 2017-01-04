@@ -7,7 +7,7 @@
 #define FL_BL 10.0 //FOCAL_LENGTH*BASELINE*1000
 
 
-int main(void){
+int main(int argc, char **argv){
     /// Initialize DUO MLX camera
     cam::Camera *camera;
     camera = new cam::Camera(cam::type::DUO, stereo::Size2d(640, 480, 1), cam::color::GRAY, 10, 1, 1, 0, 1);
@@ -36,15 +36,15 @@ int main(void){
     float* dataOut = (float*)malloc(640 * 480 * sizeof(float));
 	while((cvWaitKey(5) & 0xff) != 27)
 	{
-        /// image from camera -> disparity -> u-disparity -> plan view -> get obstacles
+        /// image from camera -> disparity -> u-disparity -> depth segmentation -> get obstacles
         view->updateFromCam();
         macher->perform_AEMBM();
-        view->performUDepth();
+        view->depthSegmentation();
+        scene->updateFromView();
 
-        //scene->updateFromView();
-        view->grab(dataOut);
-        cv::Mat image3 = cv::Mat(480, 640, CV_32FC1, dataOut);
-        /// display image (to be introduced)
+        /// display image
+        //view->grab(dataOut);
+        //cv::Mat image3 = cv::Mat(480, 640, CV_32FC1, dataOut);
         imshow("Display", view->depthPrev);
 
 	}

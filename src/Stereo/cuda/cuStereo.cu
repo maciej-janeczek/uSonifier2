@@ -113,7 +113,9 @@ void cu::stereo::match_AEMBM(
     cudaEventSynchronize(stop);
     float milliseconds = 0;
     cudaEventElapsedTime(&milliseconds, start, stop);
-    std::cout << milliseconds << "ms elapsed" << std::endl;
+    if(DEBUG_EN){
+        std::cout << milliseconds << "ms elapsed" << std::endl;
+    }
 }
 
 void cu::stereo::match_NEW(

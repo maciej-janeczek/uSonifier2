@@ -13,6 +13,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+#define DEBUG_EN 1
+
 #define WIDTH	640
 #define HEIGHT	480
 #define ACC 	0.3
