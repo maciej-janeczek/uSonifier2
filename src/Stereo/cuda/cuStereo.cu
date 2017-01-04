@@ -64,7 +64,7 @@ void cu::stereo::match_AEMBM(
     dim3 thPerBlock(16, 16);
     dim3 blocks(w / thPerBlock.x, h / thPerBlock.y);
     cu::common::global::uchar4texToUchar1 << <blocks, thPerBlock>>> (temps.tmpChars[0], w, h);
-    cu::improc::global::edgeDetect << <blocks, thPerBlock>>> (temps.tmpChars[0], temps.tmpChars[1], 70, w, h);
+    cu::improc::global::edgeDetect << <blocks, thPerBlock>>> (temps.tmpChars[0], temps.tmpChars[1], 20, w, h);
     cudaDeviceSynchronize();
 
     dim3 threadsPerBlock24(24, 24);
@@ -106,8 +106,6 @@ void cu::stereo::match_AEMBM(
       macher::global::matcher_AEMBMv1<< <blocksDisp, thPerBlockDisp>>>(temps.tmpChars[2],(unsigned short*)temps.tmpInts[2], (unsigned int*)temps.tmpInts[1], out, w, h);
       cudaDeviceSynchronize();
 
-      //bee::cu::common::global::uchar1toFloat << <blocks, thPerBlock>>> (temps.tmpChars[0], out, w, h, 1 / 255.0f);
-      // copyTexToOut<<<blocks, thPerBlock>>>(w, h, out);
       cudaUnbindTexture(texRight);
       cudaUnbindTexture(texLeft);
 
@@ -133,7 +131,7 @@ void cu::stereo::match_NEW(
     dim3 thPerBlock(16, 16);
     dim3 blocks(w / thPerBlock.x, h / thPerBlock.y);
     cu::common::global::uchar4texToUchar1 << <blocks, thPerBlock>>> (temps.tmpChars[0], w, h);
-    cu::improc::global::edgeDetect << <blocks, thPerBlock>>> (temps.tmpChars[0], temps.tmpChars[1], 80, w, h);
+    cu::improc::global::edgeDetect << <blocks, thPerBlock>>> (temps.tmpChars[0], temps.tmpChars[1], 50, w, h);
     cudaDeviceSynchronize();
 
     dim3 threadsPerBlock24(24, 24);

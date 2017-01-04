@@ -4,7 +4,7 @@
 #include <functional>
 #include <csound/csound.hpp>
 #include <csound/csPerfThread.hpp>
-
+/*
 void sonify(Csound*, CsoundPerformanceThread*, Scene* , float , unsigned int* );
 
 class CSoundManager{
@@ -27,5 +27,5 @@ class CSoundManager{
 		Scene* scene;
 
 
-};
+};*/
 

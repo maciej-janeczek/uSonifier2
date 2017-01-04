@@ -3,7 +3,7 @@
 #include "CSoundManager.h"
 #include <chrono>
 #include <thread>
-
+/*
 int mark1flag;
 int mark2flag;
 int mark3flag;
@@ -171,5 +171,5 @@ void sonify(Csound* cs, CsoundPerformanceThread* csThread, Scene* scene, float t
 	
 	
 	}
-    		
-}
+
+}*/

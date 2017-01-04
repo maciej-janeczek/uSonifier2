@@ -13,11 +13,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-
-
-#define OBSTACLE 1
-#define WALL 2
-
 #define WIDTH	640
 #define HEIGHT	480
 #define ACC 	0.3

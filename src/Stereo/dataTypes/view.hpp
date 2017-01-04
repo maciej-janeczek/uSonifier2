@@ -5,18 +5,19 @@
 #include "size2d.hpp"
 #include <glm/glm.hpp>
 #include "../../pch.h"
+#include "../../Scene/Obstacle.h"
 
 class View {
 public:
     View(unsigned int newWidth, unsigned int newHeight, unsigned int newChannels,
        unsigned char *left_cpu, unsigned char *right_cpu);
     View(stereo::Size2d size, unsigned char *left_cpu, unsigned char *right_cpu);
-    View(cam::Camera *camera);
+    View(cam::Camera *camera, float distMax, float width);
     ~View();
     int update_Old(glm::vec3 angles);
     int updateFromCam();
     int grab(float *output);
-    vector<vector<Point>*> getObstacles();
+    vector<Obstacle> getObstacles();
 
     stereo::Size2d size = stereo::Size2d(0, 0, 0);
     cu::data_gpu data_gpu;
@@ -25,4 +26,21 @@ public:
     unsigned char *right_cpu;
     glm::vec3 angles;
     glm::vec3 origin;
+    float distMax;
+    float width;
+    int areaWidth;  /// area of the considered depth image in pixels (Width)
+    int areaDepth;  /// area of the considered depth image in pixels (Depth)
+
+    cv::Mat depthPrev;
+    void performUDepth();
+
+
+private:
+    void threshold();
+    void segmentation();
+
+    cv::Mat depth;
+    cv::Mat depthTH;
+    vector<Obstacle> obstacles;
+    float* disparity;
 };

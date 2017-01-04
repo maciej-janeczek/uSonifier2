@@ -296,11 +296,11 @@ __global__ void macher::global::matcher_AEMBMv1(unsigned char* edges, unsigned s
     unsigned int nextCost = e2 * block2[(disp+1)*(w*h)+idy*w+idx] + e32*cost32;
 
     if(   bestCost < 2000000  &&
-            (0.05f < (float)(prevCost-bestCost)/(bestCost) || 0.05f < (float)(nextCost-bestCost)/(bestCost))
+            (0.1f < (float)(prevCost-bestCost)/(bestCost) || 0.1f < (float)(nextCost-bestCost)/(bestCost))
                     /*(bestCost < prevCost*0.95f)  (bestCost < nextCost*0.95f)
         /*(bestCost < bestPrevCost*0.5f && common::device::absi((int)prevDisp - disp) != 1))*/){
         float inter = (float)(((int)prevCost)-((int)nextCost))/(2*(((int)prevCost)-2*((int)bestCost)+((int)nextCost)));
-        out[idy * w + idx] = ((float)disp+inter)/255.0f;
+        out[idy * w + idx] = ((float)disp+inter);
     }else{
         out[idy * w + idx] = 0.0f;
     }

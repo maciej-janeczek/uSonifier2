@@ -28,7 +28,7 @@ cam::Camera::Camera(cam::type type, stereo::Size2d size, cam::color color,
     case cam::type::DUO:
         this->size = stereo::Size2d(640, 480, 4);
         this->paramsDepth.baseline = 0.03;
-        this->paramsDepth.focalLength = 333.33;
+        this->paramsDepth.focalLength = 500.0; //
         /// Open DUO camera and start capturing
         //printf("DUOLib Version:       v%s\n", GetLibVersion());
          if(!OpenDUOCamera(this->size.getWidth(), this->size.getHeight(),

@@ -12,6 +12,7 @@ namespace cu {
         cudaArray* left;
         cudaArray* right;
         float* disparity;
+        uchar1* udisp;
         cudaChannelFormatDesc channelDesc1UC;
         cudaChannelFormatDesc channelDesc2UC;
         cudaChannelFormatDesc channelDescF;

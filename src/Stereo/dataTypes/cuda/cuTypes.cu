@@ -24,6 +24,7 @@ void cu::init(data_gpu* data, unsigned int h, unsigned int w, unsigned int c) {
     cudaMallocArray(&(data->left), &(data->channelDesc1UC), data->width, data->height);
     cudaMallocArray(&(data->right), &(data->channelDesc2UC), data->width, data->height);
     cudaMalloc(&(data->disparity), w * h * sizeof(float));
+    cudaMalloc(&(data->udisp), w * 64 * sizeof(uchar1));
 }
 
 int cu::update(data_gpu* data, unsigned char* left_cpu, unsigned char* right_cpu) {

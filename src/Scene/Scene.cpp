@@ -3,21 +3,19 @@
 #define OBSTACLE 1
 #define WALL 2
 
-Scene::Scene(View* view, int minDepth, int maxDepth){
+Scene::Scene(View* view){
 	this->view = view;
-	this->minDepth = minDepth;
-	this->maxDepth = maxDepth;
 }
 
 Scene::~Scene(){
 }
 
-vector<Obstacle*> Scene::getScene(){
+vector<Obstacle> Scene::getScene(){
 	return obstacles;//Should be coppied
 }
 
 void Scene::updateFromView(){
-    vector<vector<Point>*> points = view->getObstacles();
+    /*vector<Obstacle> obstacles = view->getObstacles();
 	obstacles.clear();
 	
 	for(size_t i = 0;i<points.size(); i++){
@@ -93,5 +91,5 @@ void Scene::updateFromView(){
 			}
 		}	
 		obstacles.push_back(obstacle);
-	}
+	}*/
 }
