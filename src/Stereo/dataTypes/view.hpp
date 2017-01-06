@@ -12,7 +12,7 @@ public:
     View(unsigned int newWidth, unsigned int newHeight, unsigned int newChannels,
        unsigned char *left_cpu, unsigned char *right_cpu);
     View(stereo::Size2d size, unsigned char *left_cpu, unsigned char *right_cpu);
-    View(cam::Camera *camera, float distMax, float width);
+    View(cam::Camera *camera, float distMin, float distMax, float width);
     ~View();
     int update_Old(glm::vec3 angles);
     int updateFromCam();
@@ -27,6 +27,7 @@ public:
     glm::vec3 angles;
     glm::vec3 origin;
     float distMax;
+    float distMin;
     float width;
     int areaWidth;  /// area of the considered depth image in pixels (Width)
     int areaDepth;  /// area of the considered depth image in pixels (Depth)

@@ -15,7 +15,7 @@ View::View(stereo::Size2d size, unsigned char *left_cpu,
            size.getChannels());
 }
 
-View::View(cam::Camera *camera, float distMax, float width) {
+View::View(cam::Camera *camera, float distMin, float distMax, float width) {
     this->camera = camera;
     this->size = camera->size;
     this->left_cpu = camera->left.data;
@@ -28,6 +28,7 @@ View::View(cam::Camera *camera, float distMax, float width) {
 
     this->width = width;
     this->distMax = distMax;
+    this->distMin = distMin;
     this->areaDepth = (int)(this->distMax*100)/2;
     this->areaWidth = (int)(this->width*100)/2;
     this->depth = cv::Mat(this->areaDepth, this->areaWidth, CV_8UC1);

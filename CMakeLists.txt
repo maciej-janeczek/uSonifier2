@@ -25,7 +25,8 @@ list(APPEND CUDA_NVCC_FLAGS -gencode arch=compute_30,code=sm_32)
 
 ### Find all cpp files ###
 file(GLOB_RECURSE Scene_SRC src/Scene/*.cpp)
-file(GLOB_RECURSE CSoundManager_SRC src/CSoundManager/*.cpp)
+file(GLOB_RECURSE CSoundManager_SRC src/CSoundManager/CSoundManager.cpp)
+file(GLOB_RECURSE ScanTimer_SRC src/CSoundManager/ScanTimer.cpp)
 file(GLOB_RECURSE Camera_SRC src/Camera/*.cpp)
 file(GLOB_RECURSE Stereo_SRC src/Stereo/*.cpp)
 
@@ -36,6 +37,7 @@ set(DUO_LIB ${CMAKE_SOURCE_DIR}/lib/libDUO.so)
 ### Set elements to be compiled as static libraries ###
 cuda_add_library( Scene ${Scene_SRC} )
 cuda_add_library( CSoundManager ${CSoundManager_SRC} )
+cuda_add_library( ScanTimer ${ScanTimer_SRC} )
 cuda_add_library( Stereo ${Stereo_SRC} )
 cuda_add_library( Camera ${Camera_SRC} )
 cuda_add_library( StereoCUDA "${CMAKE_SOURCE_DIR}/src/Stereo/cuda/cuStereo.cu" )
@@ -45,5 +47,5 @@ cuda_add_library( TypesCUDA "${CMAKE_SOURCE_DIR}/src/Stereo/dataTypes/cuda/cuTyp
 cuda_add_executable(${ProjectName} ${Project_SRC}) 
 
 ### Link libraries to executable ###
-target_link_libraries(${ProjectName} CSoundManager Scene Camera Stereo StereoCUDA TypesCUDA ${OpenCV_LIBS} ${DUO_LIB} ${Csound_LIBS} )
+target_link_libraries(${ProjectName}  CSoundManager ScanTimer Scene Camera Stereo StereoCUDA TypesCUDA ${OpenCV_LIBS} ${DUO_LIB} ${Csound_LIBS} )
 add_definitions("-DUSE_DOUBLE")

@@ -2,74 +2,68 @@
 #include <chrono>
 #include <thread>
 
-int mark1flag;
-int mark2flag;
-int mark3flag;
-
 CSoundManager::CSoundManager(Scene* newScene, char* csdfile){
 	cs = new Csound();
 	scene = newScene;
-	
-	pScanTimer = &scanTimer;
-	pInstr = &instr;
-	Csound *cs = new Csound();
+	//cs = new Csound();
  	cs->Compile(csdfile);
- 	mark1flag = 0;
-	mark2flag = 0;
-	mark3flag = 0;
 }
 
 CSoundManager::~CSoundManager(){
-	
+    delete timer;
 }
 
 void CSoundManager::Start(){	
 
 	instr = 1;
-	scanTimer = 0;
-	perfThread = new CsoundPerformanceThread(cs);
-    perfThread->Play();
-    double params[13] = { static_cast<double>(1), 0, 0.03, 0.7, 1, 1, 500, 8.03, 0.01, 0.5, 2000, 0.5, 0.9 };
-    //perfThread->
-    //cs->SetChannel(("vol" + std::to_string(1)).c_str(), 0.7*(1.0f - sqrt((100.0f/100.0f) / 5.0f)));
-    //cs->SetChannel(("azimuth" + std::to_string(1)).c_str(), 0.0f);
-    perfThread->ScoreEvent(0, 'i', 13, params);
-    //std::thread([this] {call(20);} ).detach();
+	csThread = new CsoundPerformanceThread(cs);
+    csThread->Play();
+    timer = new ScanTimer(20, scene->view->distMax, scene->view->distMin, timer::TYPE::GROWING_SPHERE,1500, 2000);
+    std::thread([this] {callback();} ).detach();
 }
 
 void CSoundManager::Stop(){
-	perfThread->Stop();
-	perfThread->Join();
+    callbackStatus = 0;
+	csThread->Stop();
+	csThread->Join();
 	cs->Stop();
 }
 
-void CSoundManager::call(unsigned int interval)
+void CSoundManager::callback()
 {
-    while (true)
+    int markersPlayed = 0;
+    this->callbackStatus = 1;
+    while (callbackStatus)
     {
-        auto start = std::chrono::system_clock::now();
-        *(this->pScanTimer)+=interval;
+        timer::STATUS status = this->timer->update();
 
-        if(*(this->pScanTimer) <= ACTIVE_TIME){
-            float scaledTime = (float)(*(this->pScanTimer))/ACTIVE_TIME;
-            //sonify(this->cs, this->perfThread, this->scene, scaledTime, this->pInstr);
+        if(status == timer::STATUS::ACTIVE){
+            if(markersPlayed == 0){
+                sonifyMarkers();
+                markersPlayed = 1;
+            }
+            sonifyObstacles();
         }
-        else if(*(this->pScanTimer) >= FULL_SCAN){
-            *(this->pScanTimer)= 0;
-            *(this->pInstr) = 1;
-            mark1flag = 0;
-            mark2flag = 0;
-            mark3flag = 0;
+        else if(status == timer::STATUS::RESET){
+            markersPlayed = 0;
+            this->instr = 1;
+            continue;
         }
-        auto stop = std::chrono::system_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-        std::this_thread::sleep_for(std::chrono::milliseconds(interval-(int)duration.count()));
-        if(interval == 0) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(this->timer->getSleepTime()));
     }
 }
 
-void CSoundManager::sonify(Csound* cs, CsoundPerformanceThread* csThread, Scene* scene, float time, unsigned int* freeInstr)
+void CSoundManager::sonifyMarkers() {
+    double params1[5] = { static_cast<double>(31), 0, 0.5, 0.7, 31};
+    cs->SetChannel(("vol" + std::to_string(31)).c_str(),  0.7/*0.7*(1.0f - sqrt((450.0f/100.0f) / scene->maxDepth))*/);
+    cs->SetChannel(("azimuth" + std::to_string(31)).c_str(), 0.0f);
+    csThread->ScoreEvent(0, 'i', 5, params1);
+}
+
+void CSoundManager::sonifyObstacles()
 {
+
+
 	/*int depth = scene->maxDepth*100*time;
 	int area = scene->maxDepth*100*UPDATE_TIME/ACTIVE_TIME;
 	int minDepth = depth - area/2;

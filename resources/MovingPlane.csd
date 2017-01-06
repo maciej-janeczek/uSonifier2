@@ -1,8 +1,8 @@
 <CsoundSynthesizer>
 <CsOptions>
 -o dac:hw:1,0
--B 512
--b 64
+-b 32
+-m7
 </CsOptions>
 <CsInstruments>
 
@@ -83,16 +83,60 @@ instr 1
 endin
 
 
-instr 21
+instr 31
 
 	kVol				init	1 
-	kVol				chnget 	"vol21"
+	kVol				chnget 	"vol31"
 
 	kAzimuth 			init 	0
-	kAzimuth 			chnget 	"azimuth21"
+	kAzimuth 			chnget 	"azimuth31"
 
 	kElevation 			init 	0
-	kElevation			chnget 	"elev21"
+	kElevation			chnget 	"elev31"
+
+	iVol				init	p4
+	iMode				init	p5
+
+	asig loscil 1, 1, p5, 1, 0
+
+	aleft, aright hrtfmove iVol * kVol * asig, kAzimuth, kElevation, "hrtf\hrtf-44100-left.dat", "hrtf\hrtf-44100-right.dat"
+
+	out aleft, aright
+
+endin
+
+instr 32
+
+	kVol				init	1 
+	kVol				chnget 	"vol32"
+
+	kAzimuth 			init 	0
+	kAzimuth 			chnget 	"azimuth32"
+
+	kElevation 			init 	0
+	kElevation			chnget 	"elev32"
+
+	iVol				init	p4
+	iMode				init	p5
+
+	asig loscil 1, 1, p5, 1, 0
+
+	aleft, aright hrtfmove iVol * kVol * asig, kAzimuth, kElevation, "hrtf\hrtf-44100-left.dat", "hrtf\hrtf-44100-right.dat"
+
+	out aleft, aright
+
+endin
+
+instr 33
+
+	kVol				init	1 
+	kVol				chnget 	"vol33"
+
+	kAzimuth 			init 	0
+	kAzimuth 			chnget 	"azimuth33"
+
+	kElevation 			init 	0
+	kElevation			chnget 	"elev33"
 
 	iVol				init	p4
 	iMode				init	p5
@@ -110,6 +154,6 @@ endin
 f 30 0 0 1 "marker-percuss01.wav" 0 0 0
 f 31 0 0 1 "marker-percuss02.wav" 0 0 0
 f 32 0 0 1 "marker-percuss03.wav" 0 0 0
-i 1 0 10000
+i1 0 10000 0.1  1 1 500 8.03 0.01 0.5 2000 0.5 0.9 0 0 
 </CsScore>
 </CsoundSynthesizer>

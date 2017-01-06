@@ -14,7 +14,7 @@ int main(int argc, char **argv){
 
     /// Create View context with binded Camera
     View* view;
-    view = new View(camera, 5.0f, 4.0f);
+    view = new View(camera, 0.1f, 5.0f, 4.0f);
 
     /// Create depth calculation for particular View
     stereo::Macher* macher;
@@ -24,9 +24,9 @@ int main(int argc, char **argv){
     Scene* scene = new Scene(view);
 
     /// Create CsoundManager and bind Scene to it
-    //char* csdfile = "../resources/MovingPlane.csd";
-    //CSoundManager csound(scene, csdfile);
-    //csound.Start();
+    char* csdfile = "../resources/MovingPlane.csd";
+    CSoundManager csound(scene, csdfile);
+    csound.Start();
 
     /// Init display window
 	namedWindow( "Display", WINDOW_AUTOSIZE);
@@ -48,11 +48,10 @@ int main(int argc, char **argv){
         imshow("Display1", view->depthPrev);
         imshow("Display2", view->depthRectPrev);
         imshow("Display3", image3/16);
-
 	}
 	waitKey(0);
 
-    //csound.Stop();
+    csound.Stop();
 
     delete (camera);
     delete (view);
