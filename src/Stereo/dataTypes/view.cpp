@@ -90,7 +90,7 @@ void View::depthSegmentation(){
     cv::medianBlur(this->depth, this->depth, 3);
     cv::dilate(this->depth, this->depth, element);
     cv::erode(this->depth, this->depth, element);
-    cv::erode(this->depth, this->depth, element);
+    //cv::erode(this->depth, this->depth, element);
 
     depth.convertTo(depthPrev, CV_8UC1);
 
@@ -109,7 +109,7 @@ void View::depthSegmentation(){
         }
     }
 
-    std::cout << "No. of objects=" << obstacles.size() << std::endl;
+    //std::cout << "No. of objects=" << obstacles.size() << std::endl;
     depth.convertTo(depthRectPrev, CV_8UC1);
     for (auto &o : obstacles) // access by reference to avoid copying
     {

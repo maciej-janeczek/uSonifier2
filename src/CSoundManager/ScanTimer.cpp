@@ -21,13 +21,13 @@ ScanTimer::~ScanTimer() {
 timer::STATUS ScanTimer::update(){
     ///Get status of the scan and update ramges
     currentTime = std::chrono::system_clock::now();
-    int time = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - scanStartTime).count();
+    long time = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - scanStartTime).count();
 
     if(time <= activeTime){
         float timePercNear = (float)(time-interval/2)/activeTime;
         rangeMin = (maxDistance-minDistance) * timePercNear + minDistance;
         float timePercFar = (float)(time+interval/2)/activeTime;
-        rangeMin = (maxDistance-minDistance) * timePercFar + minDistance;
+        rangeMax = (maxDistance-minDistance) * timePercFar + minDistance;
         return timer::STATUS::ACTIVE;
 
     }else if(time < scanTime){
@@ -44,6 +44,7 @@ timer::STATUS ScanTimer::update(){
 long ScanTimer::getSleepTime(){
     auto current = std::chrono::system_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(current - currentTime);
+    return interval-duration.count();
 }
 
 

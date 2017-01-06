@@ -17,7 +17,7 @@ Obstacle::~Obstacle(){
 float Obstacle::isOnPath(float width) {
     ///Returns information whether the obstacle is on walk path of specific width and returns its distance to path
     float dist = abs(this->x) - this->width / 2.0f;
-    if (dist > width)
+    if (dist > 0)
         return dist;
     else
         return 0.0f;

@@ -16,6 +16,15 @@ class CSoundManager{
         void sonifyMarkers();
 	private:
 		void callback();
+
+        void playNote(Obstacle o);
+        ///Notes simplifiers
+        int getInstrument();
+        double getVolume(double distance);
+        double getAzimuth(float x, float z);
+        double getElevation(float x, float z);
+        double getStiffness(double distanceFromPath, double pathWidth);
+
 		
 	
 	private:

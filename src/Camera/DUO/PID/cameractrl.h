@@ -66,7 +66,7 @@ class CameraCtrl
 const float	CameraCtrl::MAX_PI_ERROR	= 300;		// maximum output value from the controller
 const float	CameraCtrl::MIN_PI_ERROR	=   0;		// minimum output value from the controller
 //const float CameraCtrl::HISTERESIS		=  50;		// histeresis
-const int	CameraCtrl::SET_POINT		= 100;		// target average value to which controller should regulate
+const int	CameraCtrl::SET_POINT		= 70;		// target average value to which controller should regulate
 const int	CameraCtrl::ROI_WIDTH		= 175;		// window width
 const int	CameraCtrl::ROI_HEIGHT		= 125;		// window height
 #endif
