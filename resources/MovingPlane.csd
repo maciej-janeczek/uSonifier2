@@ -2,7 +2,7 @@
 <CsOptions>
 -o dac:hw:1,0
 -b 32
--m7
+-m0
 </CsOptions>
 <CsInstruments>
 
